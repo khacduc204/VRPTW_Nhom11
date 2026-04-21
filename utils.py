@@ -142,7 +142,7 @@ def build_heuristic_solution(problem):
             remaining.remove(chosen)
             load += c.demand
             time = end_service
-            prev_idx = idx
+            prev_idx = chosen
 
         if not route:
             # Fallback to avoid deadlock on very hard/tight instances.

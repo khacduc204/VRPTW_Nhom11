@@ -12,6 +12,8 @@ def run_meaf(
     sditer=50,
     dfpercent=0.85,
     early_stop=None,
+    return_history=False,
+    init_heuristic=True,
 ):
     algos = {
         "GA": (run_ga, 11),
@@ -24,6 +26,7 @@ def run_meaf(
     last_improve = {k: 0 for k in algos}
 
     iter_now = 0
+    history = []
     while iter_now < iters and active:
         chunk = min(M, iters - iter_now)
         for name in list(active):
@@ -33,6 +36,7 @@ def run_meaf(
                 iters=chunk,
                 seed=None if seed is None else seed + offset + iter_now,
                 early_stop=early_stop,
+                init_heuristic=init_heuristic,
             )
             if cost < best_cost:
                 best_cost = cost
@@ -42,6 +46,10 @@ def run_meaf(
                 if len(active) > easthreshold and cost > best_cost / dfpercent:
                     active.remove(name)
 
+        if return_history:
+            history.extend([best_cost] * chunk)
         iter_now += chunk
 
+    if return_history:
+        return best_cost, best_sol, history
     return best_cost, best_sol

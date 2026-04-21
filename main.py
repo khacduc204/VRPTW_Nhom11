@@ -52,6 +52,18 @@ def parse_args():
         help="Comma-separated instance names (without .txt), or 'all' to run every .txt under dataset-root.",
     )
     parser.add_argument(
+        "--sample-instances",
+        type=int,
+        default=None,
+        help="Run only first N instances (sorted).",
+    )
+    parser.add_argument(
+        "--max-customers",
+        type=int,
+        default=None,
+        help="Limit customers to N (keeps depot + first N customers).",
+    )
+    parser.add_argument(
         "--output-csv",
         type=str,
         default="results/section6_results.csv",
@@ -64,25 +76,58 @@ def parse_args():
     parser.add_argument("--use-numba", action="store_true", help="Enable Numba-accelerated decode.")
     parser.add_argument("--parallel", action="store_true", help="Run instances in parallel (section6 mode only).")
     parser.add_argument("--workers", type=int, default=None, help="Worker count for parallel runs.")
+    parser.add_argument("--no-heuristic-init", action="store_true", help="Disable heuristic seeding in GA/PSO/ACS.")
     return parser.parse_args()
 
 
-def load_problem(instance_path):
+def load_problem(instance_path, max_customers=None):
     if instance_path:
         if not os.path.exists(instance_path):
             raise FileNotFoundError(f"Instance file not found: {instance_path}")
-        return load_solomon_instance(instance_path)
+        return load_solomon_instance(instance_path, max_customers=max_customers)
     return load_simple_data()
 
 
-def evaluate_algorithm(problem, func, name, runs, iters, seed, early_stop=None):
+def evaluate_algorithm(
+    problem,
+    func,
+    name,
+    runs,
+    iters,
+    seed,
+    early_stop=None,
+    return_runs=False,
+    return_history=False,
+    init_heuristic=True,
+):
     results = []
+    run_details = []
+    history = None
     best_sol = None
     best_cost = float("inf")
 
     for r in range(runs):
-        cost, sol = func(problem, iters=iters, seed=seed + r, early_stop=early_stop)
+        if return_history and r == 0:
+            out = func(
+                problem,
+                iters=iters,
+                seed=seed + r,
+                early_stop=early_stop,
+                return_history=True,
+                init_heuristic=init_heuristic,
+            )
+            cost, sol, history = out
+        else:
+            cost, sol = func(
+                problem,
+                iters=iters,
+                seed=seed + r,
+                early_stop=early_stop,
+                init_heuristic=init_heuristic,
+            )
         results.append(cost)
+        if return_runs:
+            run_details.append({"seed": seed + r, "cost": cost})
         if best_sol is None or cost < best_cost:
             best_cost = cost
             best_sol = sol
@@ -100,7 +145,7 @@ def evaluate_algorithm(problem, func, name, runs, iters, seed, early_stop=None):
 
     route_dist, routes, feasible = decode_giant_tour(best_sol, problem)
 
-    return {
+    payload = {
         "algorithm": name,
         "avg_objective": float(np.mean(results)),
         "std_objective": float(np.std(results)),
@@ -109,6 +154,11 @@ def evaluate_algorithm(problem, func, name, runs, iters, seed, early_stop=None):
         "vehicles_used": len(routes),
         "feasible": bool(feasible),
     }
+    if return_runs:
+        payload["runs"] = run_details
+    if return_history:
+        payload["history"] = history
+    return payload
 
 
 def print_algorithm_result(row):
@@ -122,13 +172,22 @@ def print_algorithm_result(row):
     print("-" * 42)
 
 
-def run_single(problem, runs, iters, seed, early_stop=None):
+def run_single(problem, runs, iters, seed, early_stop=None, init_heuristic=True):
     print(f"Instance: {problem.name}")
     print(f"Customers: {len(problem.customers) - 1}, Capacity: {problem.capacity}")
     print("=" * 42)
 
     for name, func in ALGORITHMS:
-        row = evaluate_algorithm(problem, func, name, runs, iters, seed, early_stop=early_stop)
+        row = evaluate_algorithm(
+            problem,
+            func,
+            name,
+            runs,
+            iters,
+            seed,
+            early_stop=early_stop,
+            init_heuristic=init_heuristic,
+        )
         print_algorithm_result(row)
 
 
@@ -152,14 +211,23 @@ def _discover_all_instances(dataset_root):
 
 
 def _run_instance(args):
-    dataset_root, ins_name, runs, iters, seed, early_stop = args
+    dataset_root, ins_name, runs, iters, seed, early_stop, max_customers, init_heuristic = args
     ins_file = _find_instance_file(dataset_root, ins_name)
     if ins_file is None:
         return []
-    problem = load_solomon_instance(ins_file)
+    problem = load_solomon_instance(ins_file, max_customers=max_customers)
     rows = []
     for algo_name, algo_func in ALGORITHMS:
-        result = evaluate_algorithm(problem, algo_func, algo_name, runs, iters, seed, early_stop=early_stop)
+        result = evaluate_algorithm(
+            problem,
+            algo_func,
+            algo_name,
+            runs,
+            iters,
+            seed,
+            early_stop=early_stop,
+            init_heuristic=init_heuristic,
+        )
         row = {
             "instance": ins_name,
             "algorithm": algo_name,
@@ -176,7 +244,19 @@ def _run_instance(args):
     return rows
 
 
-def run_section6(dataset_root, instance_names, runs, iters, seed, output_csv, early_stop=None, parallel=False, workers=None):
+def run_section6(
+    dataset_root,
+    instance_names,
+    runs,
+    iters,
+    seed,
+    output_csv,
+    early_stop=None,
+    parallel=False,
+    workers=None,
+    max_customers=None,
+    init_heuristic=True,
+):
     rows = []
 
     print("Section6 benchmark mode")
@@ -184,7 +264,7 @@ def run_section6(dataset_root, instance_names, runs, iters, seed, output_csv, ea
     print("=" * 42)
 
     if parallel:
-        work = [(dataset_root, ins_name, runs, iters, seed, early_stop) for ins_name in instance_names]
+        work = [(dataset_root, ins_name, runs, iters, seed, early_stop, max_customers, init_heuristic) for ins_name in instance_names]
         with ProcessPoolExecutor(max_workers=workers) as ex:
             for i, res in enumerate(ex.map(_run_instance, work)):
                 print(f"Running instance {instance_names[i]} ({i + 1}/{len(instance_names)})")
@@ -196,11 +276,20 @@ def run_section6(dataset_root, instance_names, runs, iters, seed, output_csv, ea
                 print(f"[WARN] Missing instance: {ins_name}.txt")
                 continue
 
-            problem = load_solomon_instance(ins_file)
+            problem = load_solomon_instance(ins_file, max_customers=max_customers)
             print(f"Running instance {ins_name} ({i + 1}/{len(instance_names)})")
 
             for algo_name, algo_func in ALGORITHMS:
-                result = evaluate_algorithm(problem, algo_func, algo_name, runs, iters, seed, early_stop=early_stop)
+                result = evaluate_algorithm(
+                    problem,
+                    algo_func,
+                    algo_name,
+                    runs,
+                    iters,
+                    seed,
+                    early_stop=early_stop,
+                    init_heuristic=init_heuristic,
+                )
                 row = {
                     "instance": ins_name,
                     "algorithm": algo_name,
@@ -310,9 +399,17 @@ def run_section6(dataset_root, instance_names, runs, iters, seed, output_csv, ea
 def main():
     args = parse_args()
     set_use_numba(args.use_numba)
+    init_heuristic = not args.no_heuristic_init
     if args.mode == "single":
-        problem = load_problem(args.instance)
-        run_single(problem, args.runs, args.iters, args.seed, early_stop=args.early_stop)
+        problem = load_problem(args.instance, max_customers=args.max_customers)
+        run_single(
+            problem,
+            args.runs,
+            args.iters,
+            args.seed,
+            early_stop=args.early_stop,
+            init_heuristic=init_heuristic,
+        )
     else:
         if args.instances.strip().lower() == "all":
             instance_names = _discover_all_instances(args.dataset_root)
@@ -321,6 +418,9 @@ def main():
                 instance_names = DEFAULT_SECTION6_INSTANCES
         else:
             instance_names = [x.strip() for x in args.instances.split(",") if x.strip()]
+
+        if args.sample_instances is not None and args.sample_instances > 0:
+            instance_names = instance_names[: args.sample_instances]
 
         run_section6(
             dataset_root=args.dataset_root,
@@ -332,6 +432,8 @@ def main():
             early_stop=args.early_stop,
             parallel=args.parallel,
             workers=args.workers,
+            max_customers=args.max_customers,
+            init_heuristic=init_heuristic,
         )
 
 

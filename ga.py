@@ -17,8 +17,9 @@ def init_population(ids, size, rng, seed_solution=None):
     return pop
 
 def mutate(sol, rng):
-    i, j = rng.sample(range(len(sol)), 2)
-    sol[i], sol[j] = sol[j], sol[i]
+    # RSM (reverse sequence mutation)
+    i, j = sorted(rng.sample(range(len(sol)), 2))
+    sol[i:j] = reversed(sol[i:j])
     return sol
 
 def crossover(p1, p2, rng):
@@ -46,10 +47,20 @@ def crossover(p1, p2, rng):
 
     return child
 
-def run_ga(problem, iters=300, pop_size=100, seed=None, ts=0.2, mr=0.5, early_stop=None):
+def run_ga(
+    problem,
+    iters=300,
+    pop_size=100,
+    seed=None,
+    ts=0.2,
+    mr=0.5,
+    early_stop=None,
+    return_history=False,
+    init_heuristic=True,
+):
     rng = random.Random(seed)
     customer_ids = [c.idx for c in problem.customers if c.idx != 0]
-    seed_solution = build_heuristic_solution(problem)
+    seed_solution = build_heuristic_solution(problem) if init_heuristic else None
     pop = init_population(customer_ids, pop_size, rng, seed_solution=seed_solution)
 
     best = None
@@ -58,6 +69,8 @@ def run_ga(problem, iters=300, pop_size=100, seed=None, ts=0.2, mr=0.5, early_st
     cache = {}
 
     no_improve = 0
+
+    history = []
 
     for _ in range(iters):
         scored = []
@@ -76,7 +89,12 @@ def run_ga(problem, iters=300, pop_size=100, seed=None, ts=0.2, mr=0.5, early_st
         else:
             no_improve += 1
             if early_stop is not None and no_improve >= early_stop:
+                if return_history:
+                    history.append(best_cost)
                 break
+
+        if return_history:
+            history.append(best_cost)
 
         trunc_size = max(2, int(len(scored) * ts))
         pool = [scored[i][1][:] for i in range(trunc_size)]
@@ -91,4 +109,6 @@ def run_ga(problem, iters=300, pop_size=100, seed=None, ts=0.2, mr=0.5, early_st
 
         pop = new_pop
 
+    if return_history:
+        return best_cost, best, history
     return best_cost, best

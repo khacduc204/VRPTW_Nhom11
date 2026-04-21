@@ -114,13 +114,18 @@ def _parse_solomon_customers(lines):
     return customers
 
 
-def load_solomon_instance(file_path):
+def load_solomon_instance(file_path, max_customers=None):
     with open(file_path, "r", encoding="utf-8") as f:
         lines = [line.rstrip("\n") for line in f]
 
     name = lines[0].strip() if lines else "solomon"
     vehicle_count, capacity = _parse_solomon_vehicle_info(lines)
     customers = _parse_solomon_customers(lines)
+    if max_customers is not None:
+        max_customers = int(max_customers)
+        if max_customers >= 1:
+            # Keep depot + first N customers (sorted by idx)
+            customers = customers[: max_customers + 1]
     return VRPTWProblem(
         name=name,
         vehicle_count=vehicle_count,
