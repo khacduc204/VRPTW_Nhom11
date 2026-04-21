@@ -1,0 +1,111 @@
+Table 2. These settings were chosen 
+based on a strategy that combines empirical knowledge, 
+literature review, and preliminary experiments. This part 
+introduces the strategy for tuning parameters within our 
+MEAF framework, focusing on framework-specific param-
+eters. The parameters for GA, PSO, and ACS follow their 
+original algorithms, with well-documented tuning strategies 
+in existing research.
+Table 2 Parameter settings for the algorithms used in this paper
+algorithm name parameter explanation value
+Ant Colony 
+System
+colony size 100
+parameter ρ for pheromone evaporation 0.3
+parameter q0 for exploitation or exploration 
+control
+0.1
+parameter β for distance influence control 2
+parameter top-k for filter the exchange 
+solution
+1
+Genetic 
+Algorithm
+population size 100
+parameter ts for truncation selection 0.2
+parameter mr for mutation ration 0.5
+Particle Swarm 
+Optimization
+swarm size 100
+parameter w for inertia weight 0.1
+MEA VRPTW parameter T for at least keep the same time 
+before exchange
+5
+parameter M for iteration of exchange 
+intervals
+15
+parameter easthreshold  for the minimum 
+number of EA instances
+2
+parameter sditer  for the earliest start dis-
+solve iteration
+50
+parameter dfpercent  for dissolve factor 0.85
+1 3
+Page 13 of 22    57 
+Z. Bai et al.
+the customer time window; 75 customers in R208 have a 
+larger acceptable service window than those in R211, while 
+the other 25 customers have a smaller acceptable time win -
+dow than those in R211. The GA algorithm and the PSO 
+algorithm do not consider restrictions during path genera -
+tion but only schedule vehicles according to the restrictions 
+in the final stage of execution. On the other hand, the ACS 
+algorithm considers the limits during the initialization phase 
+when making pheromone assignments and when calculat -
+ing the next direction of the ants. When the time window 
+is small, the advantage offered by this consideration of the 
+ant algorithm is more apparent compared to GA and PSO, 
+while it is not apparent when the window is larger. In addi -
+tion to that. when the ACS algorithm is not as good as GA 
+in realizing such data, it amounts to a drag on the overall 
+performance of the VRPTW algorithm. The opposite is true 
+for use cases R102 and R105, where the time window of 
+use case R102 is smaller overall, and the advantage of the 
+ACS algorithm is more evident now. Solving this problem 
+requires considering the time limit in the generation path of 
+GA and PSO algorithms, which can be the direction of our 
+subsequent future research.
+We can analyze the results of the four algorithms on 
+VRPTW in terms of their search mechanisms. Initially 
+designed for continuous optimization problems, the PSO 
+algorithm is unsuited for VRPTW due to its reliance on 
+particle movement and velocity updating concepts. Since 
+VRPTW is a discrete problem, the PSO algorithm needs 
+to be discretized, but experimental results indicate that the 
+selected concepts of particle movement and velocity updat-
+ing are ineffective in harnessing the strengths of PSO for 
+VRPTW. This suggests that PSO requires more advanced 
+discretization strategies to be effective for VRPTW. Exist -
+ing approaches struggle to preserve feasibility and diversity 
+under complex constraints, which may explain their rela -
+tively weaker performance compared with algorithms that 
+are inherently more suitable for discrete combinatorial opti-
+mization. In contrast, the Ant Colony System (ACS) algo -
+rithm employs a step-by-step solution construction approach, 
+effectively incorporating time window constraints into the 
+route construction process. By enabling ants to communicate 
+and share information through pheromone updates, ACS 
+reinforces more favorable routes that adhere to time window 
+constraints and minimize total travel in VRPTW. Regarding 
+Genetic Algorithms (GA), the selection and mutation com -
+ponents are vital in driving solution evolution for VRPTW. 
+However, due to the complexity and constraints of VRPTW, 
+GA may yield slightly inferior results compared to ACS. Tra-
+ditional GA methods often fail to explicitly consider these 
+constraints, resulting in the generation of infeasible solu -
+tions. In contrast, ACS incorporates a pheromone-updating 
+mechanism that considers time window constraints during 
+crossover and mutation phases of the genetic algorithm, 
+PMX and RSM were chosen, respectively, for other param-
+eters that occurred in the experiment, as shown in Table 2.
+MEAF introduces several framework-specific param -
+eters (T, M, sditer, dfpercent), for which default values were 
+used in the main experiments. A sensitivity analysis of these 
+parameters is presented in Appendix A, as shown in Fig 5.
+6.2 Result analysis
+The results of the experiment comparing the elemen -
+tary algorithms are shown in Table 3. This table presents 
+the outcomes for 56 instances run on ACS, PSO, GA, and 
+MEA VRPTW. “Avg.” denotes the average cost, and “Std.” 
+stands for the standard deviation. The

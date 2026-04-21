@@ -1,4 +1,93 @@
-from data import distance
+import numpy as np
+from data import distance_idx
+
+try:
+    from numba import njit
+    NUMBA_AVAILABLE = True
+except Exception:
+    NUMBA_AVAILABLE = False
+
+USE_NUMBA = True
+
+
+def set_use_numba(enabled):
+    global USE_NUMBA
+    USE_NUMBA = bool(enabled)
+
+
+if NUMBA_AVAILABLE:
+    @njit(cache=True)
+    def _decode_giant_tour_numba(
+        solution,
+        dist,
+        demand,
+        ready,
+        due,
+        service,
+        capacity,
+        vehicle_count,
+        depot_due,
+        extra_penalty,
+        infeasible_cost,
+    ):
+        routes = 0
+        load = 0.0
+        time = 0.0
+        prev = 0
+        total_dist = 0.0
+        has_route = False
+
+        for idx in solution:
+            if idx == 0:
+                continue
+
+            travel = dist[prev][idx]
+            arrival = time + travel
+            start_service = arrival if arrival > ready[idx] else ready[idx]
+            return_to_depot = start_service + service[idx] + dist[idx][0]
+
+            can_append = (
+                load + demand[idx] <= capacity
+                and start_service <= due[idx]
+                and return_to_depot <= depot_due
+            )
+
+            if (not can_append) and has_route:
+                total_dist += dist[prev][0]
+                routes += 1
+                load = 0.0
+                time = 0.0
+                prev = 0
+                has_route = False
+
+                travel = dist[prev][idx]
+                arrival = time + travel
+                start_service = arrival if arrival > ready[idx] else ready[idx]
+                return_to_depot = start_service + service[idx] + dist[idx][0]
+                can_append = (
+                    load + demand[idx] <= capacity
+                    and start_service <= due[idx]
+                    and return_to_depot <= depot_due
+                )
+
+            if not can_append:
+                return infeasible_cost, 0, 0
+
+            load += demand[idx]
+            time = start_service + service[idx]
+            total_dist += travel
+            prev = idx
+            has_route = True
+
+        if has_route:
+            total_dist += dist[prev][0]
+            routes += 1
+
+        if routes > vehicle_count:
+            total_dist += extra_penalty * (routes - vehicle_count)
+            return total_dist, routes, 0
+
+        return total_dist, routes, 1
 
 INFEASIBLE_COST = 10**12
 HARD_VIOLATION_PENALTY = 10**6
@@ -12,6 +101,7 @@ def _build_customer_map(customers):
 def build_heuristic_solution(problem):
     customers = _build_customer_map(problem.customers)
     depot = customers[0]
+    depot_idx = 0
     remaining = {c.idx for c in problem.customers if c.idx != 0}
     giant_tour = []
 
@@ -19,7 +109,7 @@ def build_heuristic_solution(problem):
         route = []
         load = 0.0
         time = 0.0
-        prev = depot
+        prev_idx = depot_idx
 
         while True:
             candidates = []
@@ -28,13 +118,13 @@ def build_heuristic_solution(problem):
                 if load + c.demand > problem.capacity:
                     continue
 
-                travel = distance(prev, c)
+                travel = distance_idx(problem, prev_idx, idx)
                 arrival = time + travel
                 start_service = max(arrival, c.ready)
                 end_service = start_service + c.service
                 if start_service > c.due:
                     continue
-                if end_service + distance(c, depot) > depot.due:
+                if end_service + distance_idx(problem, idx, depot_idx) > depot.due:
                     continue
 
                 # Favor low travel and early service times.
@@ -52,7 +142,7 @@ def build_heuristic_solution(problem):
             remaining.remove(chosen)
             load += c.demand
             time = end_service
-            prev = c
+            prev_idx = idx
 
         if not route:
             # Fallback to avoid deadlock on very hard/tight instances.
@@ -65,15 +155,35 @@ def build_heuristic_solution(problem):
     return giant_tour
 
 
-def decode_giant_tour(solution, problem):
+def decode_giant_tour(solution, problem, use_numba=True):
+    if use_numba and NUMBA_AVAILABLE:
+        sol_arr = np.asarray(solution, dtype=np.int64)
+        total_dist, routes_count, feasible_int = _decode_giant_tour_numba(
+            sol_arr,
+            problem.distance_matrix,
+            problem.demand_arr,
+            problem.ready_arr,
+            problem.due_arr,
+            problem.service_arr,
+            float(problem.capacity),
+            int(problem.vehicle_count),
+            float(problem.customers[0].due),
+            float(EXTRA_ROUTE_PENALTY),
+            float(INFEASIBLE_COST),
+        )
+        feasible = bool(feasible_int)
+        routes = [None] * int(routes_count)
+        return float(total_dist), routes, feasible
+
     customers = _build_customer_map(problem.customers)
     depot = customers[0]
+    depot_idx = 0
 
     routes = []
     current_route = []
     load = 0.0
     time = 0.0
-    prev = depot
+    prev_idx = depot_idx
     total_dist = 0.0
 
     for idx in solution:
@@ -82,10 +192,10 @@ def decode_giant_tour(solution, problem):
 
         c = customers[idx]
 
-        travel = distance(prev, c)
+        travel = distance_idx(problem, prev_idx, idx)
         arrival = time + travel
         start_service = max(arrival, c.ready)
-        return_to_depot = start_service + c.service + distance(c, depot)
+        return_to_depot = start_service + c.service + distance_idx(problem, idx, depot_idx)
 
         can_append = (
             load + c.demand <= problem.capacity
@@ -94,17 +204,17 @@ def decode_giant_tour(solution, problem):
         )
 
         if not can_append and current_route:
-            total_dist += distance(prev, depot)
+            total_dist += distance_idx(problem, prev_idx, depot_idx)
             routes.append(current_route)
             current_route = []
             load = 0.0
             time = 0.0
-            prev = depot
+            prev_idx = depot_idx
 
-            travel = distance(prev, c)
+            travel = distance_idx(problem, prev_idx, idx)
             arrival = time + travel
             start_service = max(arrival, c.ready)
-            return_to_depot = start_service + c.service + distance(c, depot)
+            return_to_depot = start_service + c.service + distance_idx(problem, idx, depot_idx)
             can_append = (
                 load + c.demand <= problem.capacity
                 and start_service <= c.due
@@ -118,10 +228,10 @@ def decode_giant_tour(solution, problem):
         load += c.demand
         time = start_service + c.service
         total_dist += travel
-        prev = c
+        prev_idx = idx
 
     if current_route:
-        total_dist += distance(prev, depot)
+        total_dist += distance_idx(problem, prev_idx, depot_idx)
         routes.append(current_route)
 
     feasible = len(routes) <= problem.vehicle_count
@@ -134,7 +244,7 @@ def decode_giant_tour(solution, problem):
 
 
 def evaluate(solution, problem):
-    total_dist, routes, feasible = decode_giant_tour(solution, problem)
+    total_dist, routes, feasible = decode_giant_tour(solution, problem, use_numba=USE_NUMBA)
     if not feasible:
         # Hard decode violations are rare, but keep output bounded.
         if total_dist >= INFEASIBLE_COST:

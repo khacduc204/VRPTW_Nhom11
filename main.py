@@ -3,13 +3,14 @@ import csv
 import glob
 import os
 import numpy as np
+from concurrent.futures import ProcessPoolExecutor
 
 from acs import run_acs
 from data import load_simple_data, load_solomon_instance
 from ga import run_ga
 from meaf import run_meaf
 from pso import run_pso
-from utils import decode_giant_tour
+from utils import decode_giant_tour, set_use_numba
 
 ALGORITHMS = [
     ("GA", run_ga),
@@ -56,9 +57,13 @@ def parse_args():
         default="results/section6_results.csv",
         help="Output CSV path for section6 mode.",
     )
-    parser.add_argument("--runs", type=int, default=30, help="Independent runs per algorithm.")
+    parser.add_argument("--runs", type=int, default=21, help="Independent runs per algorithm.")
     parser.add_argument("--iters", type=int, default=500, help="Iterations for each run.")
     parser.add_argument("--seed", type=int, default=42, help="Base random seed.")
+    parser.add_argument("--early-stop", type=int, default=None, help="Stop after N iterations without improvement.")
+    parser.add_argument("--use-numba", action="store_true", help="Enable Numba-accelerated decode.")
+    parser.add_argument("--parallel", action="store_true", help="Run instances in parallel (section6 mode only).")
+    parser.add_argument("--workers", type=int, default=None, help="Worker count for parallel runs.")
     return parser.parse_args()
 
 
@@ -70,13 +75,13 @@ def load_problem(instance_path):
     return load_simple_data()
 
 
-def evaluate_algorithm(problem, func, name, runs, iters, seed):
+def evaluate_algorithm(problem, func, name, runs, iters, seed, early_stop=None):
     results = []
     best_sol = None
     best_cost = float("inf")
 
     for r in range(runs):
-        cost, sol = func(problem, iters=iters, seed=seed + r)
+        cost, sol = func(problem, iters=iters, seed=seed + r, early_stop=early_stop)
         results.append(cost)
         if best_sol is None or cost < best_cost:
             best_cost = cost
@@ -117,13 +122,13 @@ def print_algorithm_result(row):
     print("-" * 42)
 
 
-def run_single(problem, runs, iters, seed):
+def run_single(problem, runs, iters, seed, early_stop=None):
     print(f"Instance: {problem.name}")
     print(f"Customers: {len(problem.customers) - 1}, Capacity: {problem.capacity}")
     print("=" * 42)
 
     for name, func in ALGORITHMS:
-        row = evaluate_algorithm(problem, func, name, runs, iters, seed)
+        row = evaluate_algorithm(problem, func, name, runs, iters, seed, early_stop=early_stop)
         print_algorithm_result(row)
 
 
@@ -146,37 +151,69 @@ def _discover_all_instances(dataset_root):
     return names
 
 
-def run_section6(dataset_root, instance_names, runs, iters, seed, output_csv):
+def _run_instance(args):
+    dataset_root, ins_name, runs, iters, seed, early_stop = args
+    ins_file = _find_instance_file(dataset_root, ins_name)
+    if ins_file is None:
+        return []
+    problem = load_solomon_instance(ins_file)
+    rows = []
+    for algo_name, algo_func in ALGORITHMS:
+        result = evaluate_algorithm(problem, algo_func, algo_name, runs, iters, seed, early_stop=early_stop)
+        row = {
+            "instance": ins_name,
+            "algorithm": algo_name,
+            "avg_objective": result["avg_objective"],
+            "std_objective": result["std_objective"],
+            "best_objective": result["best_objective"],
+            "best_distance": result["best_distance"],
+            "vehicles_used": result["vehicles_used"],
+            "feasible": result["feasible"],
+            "vehicle_limit": problem.vehicle_count,
+            "capacity": problem.capacity,
+        }
+        rows.append(row)
+    return rows
+
+
+def run_section6(dataset_root, instance_names, runs, iters, seed, output_csv, early_stop=None, parallel=False, workers=None):
     rows = []
 
     print("Section6 benchmark mode")
     print(f"Dataset root: {dataset_root}")
     print("=" * 42)
 
-    for i, ins_name in enumerate(instance_names):
-        ins_file = _find_instance_file(dataset_root, ins_name)
-        if ins_file is None:
-            print(f"[WARN] Missing instance: {ins_name}.txt")
-            continue
+    if parallel:
+        work = [(dataset_root, ins_name, runs, iters, seed, early_stop) for ins_name in instance_names]
+        with ProcessPoolExecutor(max_workers=workers) as ex:
+            for i, res in enumerate(ex.map(_run_instance, work)):
+                print(f"Running instance {instance_names[i]} ({i + 1}/{len(instance_names)})")
+                rows.extend(res)
+    else:
+        for i, ins_name in enumerate(instance_names):
+            ins_file = _find_instance_file(dataset_root, ins_name)
+            if ins_file is None:
+                print(f"[WARN] Missing instance: {ins_name}.txt")
+                continue
 
-        problem = load_solomon_instance(ins_file)
-        print(f"Running instance {ins_name} ({i + 1}/{len(instance_names)})")
+            problem = load_solomon_instance(ins_file)
+            print(f"Running instance {ins_name} ({i + 1}/{len(instance_names)})")
 
-        for algo_name, algo_func in ALGORITHMS:
-            result = evaluate_algorithm(problem, algo_func, algo_name, runs, iters, seed)
-            row = {
-                "instance": ins_name,
-                "algorithm": algo_name,
-                "avg_objective": result["avg_objective"],
-                "std_objective": result["std_objective"],
-                "best_objective": result["best_objective"],
-                "best_distance": result["best_distance"],
-                "vehicles_used": result["vehicles_used"],
-                "feasible": result["feasible"],
-                "vehicle_limit": problem.vehicle_count,
-                "capacity": problem.capacity,
-            }
-            rows.append(row)
+            for algo_name, algo_func in ALGORITHMS:
+                result = evaluate_algorithm(problem, algo_func, algo_name, runs, iters, seed, early_stop=early_stop)
+                row = {
+                    "instance": ins_name,
+                    "algorithm": algo_name,
+                    "avg_objective": result["avg_objective"],
+                    "std_objective": result["std_objective"],
+                    "best_objective": result["best_objective"],
+                    "best_distance": result["best_distance"],
+                    "vehicles_used": result["vehicles_used"],
+                    "feasible": result["feasible"],
+                    "vehicle_limit": problem.vehicle_count,
+                    "capacity": problem.capacity,
+                }
+                rows.append(row)
 
     if not rows:
         print("No section6 results generated.")
@@ -272,9 +309,10 @@ def run_section6(dataset_root, instance_names, runs, iters, seed, output_csv):
 
 def main():
     args = parse_args()
+    set_use_numba(args.use_numba)
     if args.mode == "single":
         problem = load_problem(args.instance)
-        run_single(problem, args.runs, args.iters, args.seed)
+        run_single(problem, args.runs, args.iters, args.seed, early_stop=args.early_stop)
     else:
         if args.instances.strip().lower() == "all":
             instance_names = _discover_all_instances(args.dataset_root)
@@ -291,6 +329,9 @@ def main():
             iters=args.iters,
             seed=args.seed,
             output_csv=args.output_csv,
+            early_stop=args.early_stop,
+            parallel=args.parallel,
+            workers=args.workers,
         )
 
 

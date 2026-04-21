@@ -1,7 +1,7 @@
 import random
 from utils import build_heuristic_solution, evaluate
 
-def run_pso(problem, iters=300, swarm=40, seed=None):
+def run_pso(problem, iters=300, swarm=100, seed=None, w=0.1, early_stop=None):
     rng = random.Random(seed)
     customer_ids = [c.idx for c in problem.customers if c.idx != 0]
     seed_solution = build_heuristic_solution(problem)
@@ -17,18 +17,29 @@ def run_pso(problem, iters=300, swarm=40, seed=None):
 
     best = None
     best_cost = float("inf")
+    cache = {}
+
+    no_improve = 0
 
     for _ in range(iters):
-        for p in particles:
-            cost = evaluate(p, problem)
+        for i, p in enumerate(particles):
+            tp = tuple(p)
+            if tp not in cache:
+                cache[tp] = evaluate(p, problem)
+            cost = cache[tp]
             if cost < best_cost:
                 best_cost = cost
                 best = p[:]
+                no_improve = 0
+            else:
+                no_improve += 1
+                if early_stop is not None and no_improve >= early_stop:
+                    return best_cost, best
 
-            i, j = rng.sample(range(len(p)), 2)
-            p[i], p[j] = p[j], p[i]
-
-            if best is not None and rng.random() < 0.15:
+            if rng.random() < w:
+                i, j = rng.sample(range(len(p)), 2)
+                p[i], p[j] = p[j], p[i]
+            elif best is not None:
                 # Pull particle toward global best by segment injection.
                 cut = rng.randint(1, len(p) - 2)
                 segment = best[:cut]

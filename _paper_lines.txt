@@ -1,0 +1,375 @@
+fleet organization to serve a group of customers or locations
+The Vehicle Routing Problem (VRP), first introduced by
+University, 1034  Budapest, Hungary
+The vehicle routing problem with time windows (VRPTW) has gained much attention recently due to its wide applica -
+lems. This paper proposes a novel membrane-inspired evolutionary algorithm framework (MEAF) consisting of isolated
+of local optima, MEAF offers a promising solution to address complex problems. The effectiveness of the proposed MEAF
+is verified by applying three classical metaheuristics, namely Genetic Algorithm (GA), Ant Colony System (ACS), and
+Particle Swarm Algorithm (PSO), to solve the VRPTW problem. The experiments are run on 56 instances of Solomon
+with 100 client benchmarks. The evaluation of the experimental results combined with the mean and standard deviation
+Over the years, numerous variants of the VRP have been
+including the Capacitated Vehicle Routing Problem, the
+Vehicle Routing Problem with Time Windows (VRPTW),
+the Vehicle Routing Problem with Pickup and Delivery, the
+Multi-Depot Vehicle Routing Problem, and the Stochastic
+Vehicle Routing Problem. Among these, the VRPTW is
+vehicle capacities but also adhering to strict service time
+ance multiple constraints, such as vehicle capacity and cus-
+tomer time windows, which adds layers of complexity to
+lated Annealing [9], Tabu Search [10], Particle Swarm Opti-
+for the VRPTW, a notable gap remains in the practical
+By leveraging the hierarchical organization and parallel
+framework that combines Genetic Algorithm (GA), Particle
+Swarm Optimization (PSO), and Ant Colony System (ACS)
+approaches that rely on a single metaheuristic, MEAF
+seamlessly integrates GA, ACS, and PSO within a uni -
+● Scalability and Robustness : Extensive experiments
+on 56 VRPTW benchmark instances demonstrate that
+MEAF consistently outperforms its component algo -
+The rest of this paper is organized as follows. In Section 2,
+sentation of ACS, GA, and PSO. In Section 4, we propose
+the membrane evolutionary algorithm framework (MEAF).
+Section 5 extends MEAF to introduce the MEA VRPTW.
+Section 6 presents an experimental comparison and analysis
+of the MEA VRPTW algorithm against the algorithms that
+approaches for solving the Vehicle Routing Problem with
+Time Windows (VRPTW). These methods, including vari -
+tive time windows and capacity constraints (see studies such
+cle capacity Q and customer acceptance time windows need
+to be considered when optimizing fleet organization to serve
+of qi > 0 to be delivered with a time window [bi,e i], bi is
+and ei is the ending time allowed to receive goods. A vehicle
+Euclidean distance. A set of homogeneous vehicles K with
+capacity Q are used to serve the customer set V ′.
+1, if vehiclek travels from vi to vj
+the time window and capacity constraints. Typically, the
+Annealing [9], Tabu Search [10], Particle Swarm Optimiza-
+The Self-competitive Particle Swarm Optimization
+(ScPSO) algorithm introduced by Wang et al. [ 29] is one
+search ability and population diversity. Additionally, ScPSO
+performance of the swarm.
+tialization with the Solomon Insertion heuristic to create
+a diverse initial population, improving exploration and
+ing individual algorithms on benchmark functions despite
+putational paradigm inspired by the organization and func -
+population-based optimizer such as a Genetic Algorithm
+(GA) evolving within one membrane, which occasionally
+rithmic frameworks, including our proposed MEAF model,
+vehicle can be loaded beyond its capacity. Equation 6 states
+that each vehicle leaves depot 0 and eventually returns to
+vehicle must have sufficient time to return to the depot after
+the serving time adheres to the time window.
+imagine a population-based optimizer (e.g., a GA) evolving within one
+used to update the pheromone after one iteration, but in
+ACS, only the global best Ant was allowed to add a pher -
+omone after each iteration, which means that only those
+With this change, ACS has proven to be more effective
+the trial. Lgb  could be substituted as Lib, called iteration-
+rules at the end of each iteration, ACS also uses local update
+able for a following ant. This way, the other ants’ exploration
+may try to execute the transition rule again to regenerate
+the next location and assign a new vehicle if it is still not
+There are five main steps: population initialization, evalua -
+This part describes the ant colony system (ACS) [27] applied
+with the ACS, that can be applied to the VRPTW problem.
+of efficiency. Regarding the original ant system, it is a meta-
+inspired algorithm inspired by the behavior of ants searching
+for food. A pheromone is a means ants use to communicate
+more attractive they are to the ants. Assuming that all ants
+point to the destination, ants that choose shorter paths will
+Considering pheromones’ effect on ants, all ants will choose
+ing. The ACS improves the transition rules and pheromone
+The ACS algorithm consists of four key steps, i.e., phero-
+Transition rule In ACS, transition rules consist of explo -
+ration and exploitation strategies, using a parameter q0 to
+q0 is a parameter 0 ≤ q0 ≤ 1, τ (r, s) means the pheromone
+When applied to the VRPTW problem, vehicles must be
+constraint. The task sequence is assigned to a vehicle when
+the constraint is satisfied, and new vehicles continue to
+3.5 Particle swarm optimization
+3.5.1 Standard PSO algorithm
+In this section, the conventional particle swarm optimi -
+zation (PSO) is introduced briefly. It is a metaheuristic
+By applying the PSO algorithm, the ith particle’s posi -
+represents the swarm size. Furthermore, the ith particle’s
+vector: V i =( vi1,vi2, ..., viD )(i=1 ,2, ..., m). In PSO,
+of the swarm. One particle’s own experience refers to the
+“pbest”. The experience of the swarm refers to the best
+position found by any particle in the swarm so far, which is
+are positive constants, called learning rates, and r1 and r2
+number of iterations is reached or attain a satisfactory fit -
+ness value. The standard PSO algorithm is suitable for
+Step1. Population initialization.  One population
+means one solution to the problem. The population size
+is a parameter that could be adjusted depending on the
+nature of the problem. The initial population could be
+duced above with the standard PSO; then, it’s the discrete
+PSO for TSP. The remaining processing is the same as the
+GA algorithm when applied to the VRPTW problem.
+optimal solutions, sensitivity to parameter settings, and the
+while mitigating their drawbacks, our proposed framework
+so, we address issues like parameter sensitivity and the ten-
+tion rules, and its populations can be rearranged into other
+In this subsection, we describe the details of the MEAF
+PSO can also be modified to handle discrete problems.
+3.5.2 Discrete PSO algorithm
+describe applying the discrete PSO algorithm to solve the
+different PSO methods for solving TSP problems. Here we
+structure, each elementary membrane hosts a population
+for a specific evolutionary algorithm (EA). The populations
+Fig. 3 Membrane structure proposed in the MEAF framework. Each
+guide further evolution (e.g., the GA membrane can directly use exter-
+they evolved. Population exchange at this point will only
+result in meaningless communication loss. Population com-
+One is the number of independent evolution iterations, and
+the other is the number of iterations where the optimal solu-
+iteration. However, the communication in rules can also dif-
+populations directly as ordinary individuals joining the clus-
+quently describe the fusion strategies of ACS, PSO, and GA.
+In the proposed MEAF structure, each basic EA occu -
+phase are crucial parameters that influence the effectiveness
+of the MEAF. These rules are designed to balance explo -
+lution is a key feature of the MEAF. In the isolated phase,
+ary algorithms, MEAF provides a flexible and powerful
+isolated and cooperative evolution phases enables MEAF to
+key parameters of the MEAF framework are summarized
+5 MEAVRPTW
+This section introduces a specific application of the MEAF
+framework to solve the VRPTW. In selecting ACS, GA, and
+PSO as the elementary evolutionary algorithms, we have
+ACS and GA are recognized for their robust convergence
+Genetic Algorithms (GAs) utilize selection, crossover,
+Ant Colony System (ACS) excels in dynamic and combi -
+solution construction. PSO, typically used for continuous
+However, including PSO broadens the scope of optimiza -
+tion strategies and tests the MEAF framework’s ability to
+exclude unsuitable algorithms. PSO’s unique concepts like
+without substantial improvements. By contrast, ACS, GA,
+and PSO have demonstrated their foundational impact and
+In summary, ACS, GA, and PSO were selected for their
+tion of optimization strategies and underscores the MEAF
+produced by the fitness function. The parameters sditer  and
+tion iterations and the number of minimum evolutionary
+determines the number of iterations of the algorithm and
+MEAF operates as a cooperative hybrid framework inte-
+grating ACS, PSO, and GA. Each algorithm evolves inde -
+pendently at the population level, maintaining its own search
+coordination, MEAF preserves full algorithmic autonomy
+serves population diversity, offering advantages over both
+Table 1 MEAF Framework: Parameter Definitions and Defaults
+Parameter Explanation Default/Range
+T Minimum iterations to keep the
+M Iterations between successive
+sditer Earliest iteration to start applying
+maxiter Maximum number of iterations for
+experiment
+3)GA In the selection step of the genetic algorithm, we
+first select candidate parents from the population using
+plexity of the GA algorithm is referred to in article [ 49] as
+O(I× N × D ), the computational complexity of the PSO
+and the computational complexity of the ACS algorithm is
+denotes the number of iterations, D denotes the dimension-
+denotes the number of populations. The MEA VRPTW
+parameters, which are O(I× N × D 2) in the worst case,
+6 Experiments and results analysis
+In the experiments, we chose Solomon’s VRPTW bench -
+mark problem with 100 customers [ 52]. The benchmark
+mixture of random and clustering. The property of vehicle
+capacity is small in problem sets R1, C1, and RC1. In con -
+trast, the vehicle capacity is large in problem sets R1, C1,
+This section is organized as follows:
+where optSoli means the optimal solution until iteration i, T
+tion hasn’t changed in Titer  iterations.
+where iternow  means the iteration times until now, iterout
+means the iteration times of the last communication out, and
+nication happens every M iteration.
+1)ACS As shown in Section 3.3, the core operations of
+the ACS are on pheromones, including local pheromone
+2)PSO The core of the particle algorithm is to update
+For the framework parameters, the T parameter deter -
+mines the minimum number of stable iterations before an
+gence. The M parameter controls the iteration intervals
+The earliest start dissolution iteration ( sditer ) parameter
+dissolved. It is crucial to avoid setting this parameter too
+Fine-tuning this parameter helps maintain algorithm diver -
+Additionally, the ACS algorithm includes a top-k param-
+By focusing on these framework-specific parameters and
+the additional ACS parameter, we can effectively balance
+the exploration and exploitation within the MEAF frame -
+For all the 56 benchmark instances, algorithms were run
+the maximum iteration number each time was 500. Regard-
+ing the initial paths of the particle swarm optimization and
+tic to generate them. The selection phase of GA uses a com-
+selection. In each iteration, we used Truncation Selection
+to select ts percent from the entire population and then we
+the filtered population to produce a new generation. For the
+● In the Experiment setup, we describe the parameters
+and experimental environment used for evaluating the
+adjusting parameters.
+compared to elementary algorithms (ACS, PSO, and
+GA). Then, we introduce a comparison with recently
+6.1 Experiment setup
+Java programming language. All experiments were con -
+The parameter settings for the algorithms used in this
+literature review, and preliminary experiments. This part
+introduces the strategy for tuning parameters within our
+MEAF framework, focusing on framework-specific param-
+eters. The parameters for GA, PSO, and ACS follow their
+Table 2 Parameter settings for the algorithms used in this paper
+algorithm name parameter explanation value
+parameter ρ for pheromone evaporation 0.3
+parameter q0 for exploitation or exploration
+parameter β for distance influence control 2
+parameter top-k for filter the exchange
+population size 100
+parameter ts for truncation selection 0.2
+parameter mr for mutation ration 0.5
+Particle Swarm
+swarm size 100
+parameter w for inertia weight 0.1
+MEA VRPTW parameter T for at least keep the same time
+parameter M for iteration of exchange
+parameter easthreshold  for the minimum
+parameter sditer  for the earliest start dis-
+solve iteration
+parameter dfpercent  for dissolve factor 0.85
+the customer time window; 75 customers in R208 have a
+dow than those in R211. The GA algorithm and the PSO
+tion but only schedule vehicles according to the restrictions
+in the final stage of execution. On the other hand, the ACS
+ing the next direction of the ants. When the time window
+ant algorithm is more apparent compared to GA and PSO,
+tion to that. when the ACS algorithm is not as good as GA
+for use cases R102 and R105, where the time window of
+ACS algorithm is more evident now. Solving this problem
+GA and PSO algorithms, which can be the direction of our
+designed for continuous optimization problems, the PSO
+VRPTW is a discrete problem, the PSO algorithm needs
+to be discretized, but experimental results indicate that the
+ing are ineffective in harnessing the strengths of PSO for
+VRPTW. This suggests that PSO requires more advanced
+mization. In contrast, the Ant Colony System (ACS) algo -
+effectively incorporating time window constraints into the
+route construction process. By enabling ants to communicate
+and share information through pheromone updates, ACS
+reinforces more favorable routes that adhere to time window
+constraints and minimize total travel in VRPTW. Regarding
+Genetic Algorithms (GA), the selection and mutation com -
+GA may yield slightly inferior results compared to ACS. Tra-
+ditional GA methods often fail to explicitly consider these
+tions. In contrast, ACS incorporates a pheromone-updating
+mechanism that considers time window constraints during
+eters that occurred in the experiment, as shown in Table 2.
+MEAF introduces several framework-specific param -
+used in the main experiments. A sensitivity analysis of these
+parameters is presented in Appendix A, as shown in Fig 5.
+The results of the experiment comparing the elemen -
+tary algorithms are shown in Table 3. This table presents
+the outcomes for 56 instances run on ACS, PSO, GA, and
+cost reduction = M in(ACS Avg. , PSOAvg. , GAAvg. )− OurAvg.
+M in(ACS Avg. , PSOAvg. , GAAvg. )  (22)
+As shown in Table 3, for problem sets C1 and C2,
+instances. Except for MEA VRPTW, the ACS performed the
+best, winning 14 out of 17 solutions compared to GA and
+PSO. As for problem sets R1 and R2, MEA VRPTW also
+Except for MEA VRPTW, the ACS performed better on 17
+of these instances, and the GA performed better on the
+Except for MEA VRPTW, ACS performed better in all 11
+instances, while GA performed better in the remaining 5
+Moreover, from the experimental run logs, we can see that
+the PSO algorithm dissolves 21*56=1176 runs. The experi-
+can identify and filter out the bad algorithms in the runs.
+From the experimental data of the individually run algo -
+the results of ACS, followed by GA, and lastly comes PSO.
+are not as good as the ACS and GA algorithms. The analysis
+ACS PSO GA MEA VRPTW
+Table 3 Experiment results of MEA VRPTW compared with ACS, PSO, GA on 56 benchmark instances
+Fig. 4 Convergence graph for algorithms running with 500 iterations on 6 benchmark instances
+ACS PSO GA MEA VRPTW
+Table 3 (continued)
+cost of ACS, PSO, and GA components. Its computational
+time is generally faster than that of ACS, while being slower
+than PSO and GA. This intermediate runtime is expected,
+(MEAF) is to provide a modular framework that integrates
+multiple metaheuristics (ACS, PSO, GA) with minimal
+comprehensive benchmarking against recent hybrid meth -
+to contextualize MEAF within the broader landscape of
+rithm framework (MEAF), which combines four evolution-
+computation and biological evolution, MEAF aims to har -
+mation exchange, MEAF enables collaborative evolution
+rithm, which applies the MEAF framework to address the
+VRPTW. The MEA VRPTW algorithm combines ACS,
+yielded the best results in the experimental process, show -
+eters, it takes about 21 seconds to run the ACS algorithm
+once, about 7 seconds to run the GA algorithm once, and
+about 2 seconds to run the PSO algorithm once. Since the
+PSO algorithm was introduced to verify that the algorithm
+framework can identify inferior algorithms, PSO will dis -
+most of the runs in the algorithm framework are ACS and
+GA algorithms, the running time of the hybrid algorithm is
+the average running time of the GA algorithm and the ACS
+The results of the experiment comparing the recently devel-
+56 benchmark instances. The test yielded a statistic of 276.74
+rank tests [54] to compare MEA VRPTW against each baseline
+age computational time (in seconds) of ACS, PSO, GA,
+and MEA VRPTW over 21 runs. These results provide a
+Table 4 Experiment results of MEA VRPTW compared with COA, OOA, POA on 56 benchmark instances
+GA, and PSO to form the elementary algorithm within
+the MEAF’s framework. We conducted our experiments
+using 56 instances from Solomon’s VRPTW benchmark
+GA, ACS, and PSO, MEA VRPTW achieved superior perfor-
+analysis of the experimental programs log revealed that all
+PSO running units were eliminated during the early stages of
+evolution. This proves that the MEAF algorithm framework
+the experimental result data and convergence curves, we
+MEAF’s framework efficacy in solving real-world problems.
+Table 5 Average computational time (in seconds) of ACS, PSO, GA, and
+MEA VRPTW after 21 runs
+inst. ACS PSO GA MEA VRPTW
+inst. ACS PSO GA MEA VRPTW
+Instance MEA VRPTW ACS PSO GA
+Based on the sensitivity analysis, MEAF is robust to varia-
+tions in the parameters. The recommended ranges for practical
+0.75–0.90. These ranges provide guidance for parameter tuning
+Fig. 5 Sensitivity analysis of four key MEAF parameters on the Solo -
+independent runs for each parameter configuration. Parameters ana -
+lyzed are T (minimum iterations before exchange), M (exchange inter-
+val), sditer (earliest iteration to start dissolution), and dfpercent (dis-
+algorithm stability. The results show that MEAF is generally robust
+across the tested parameter ranges
+cle routing problem with time windows. Eur J Oper Res
+rithm for the vehicle routing and scheduling problem with time
+for routeing problems with time windows. J Oper Res Soc
+27. Dorigo M, Gambardella LM (1997) Ant colony system: a cooper-
+competition particle swarm optimization algorithm for the vehi -
+cle routing problem with time window. IEEE Access
+using hybrid genetic algorithm (hga): a solution to the vehicle
+routing problem with time windows (vrptw). IEEE Access
+vehicle routing problem with time windows. Artif Intell Eng
+46. Onwubolu GC, Babu B, Clerc M (2004) Discrete particle swarm
+approach for vehicle routing problem. Neural Comput Appl
+echelon multi-trip vehicle routing problem with mixed pickup
+and delivery demand and time windows. Transportation Research
+optimization scheme for the capacitated dynamic vehicle routing
+problem with time windows. Neural Comput Appl 33(1):409–432
+sequential insertion algorithm and tabu search to vehicle rout -
+ing problem with time windows. RAIRO-Operations Research
+6. Zhang J, Li Y , Lu Z (2024) Multi-period vehicle routing problem
+with time windows for drug distribution in the epidemic situation.
+7. El-Sherbeny NA (2010) Vehicle routing with time windows: An
+11. Kennedy, J., Eberhart, R.: Particle swarm optimization. In: Pro -
+16. Alsalibi B, Mirjalili S, Abualigah L, Yahya RI, Gandomi AH
+(2022) A comprehensive survey on the recent variants and appli-
+19. Desrochers M, Desrosiers J, Solomon M (1992) A new optimi -
+zation algorithm for the vehicle routing problem with time win -
+20. Fisher ML, Jörnsten KO, Madsen OB (1997) Vehicle routing
+with time windows: Two optimization algorithms. Oper Res
+21. Kohl N, Desrosiers J, Madsen OB, Solomon MM, Soumis F
+(1999) 2-path cuts for the vehicle routing problem with time win-
+for the vehicle routing and scheduling problem with time window
+52. Solomon MM (1987) Algorithms for the vehicle routing and
+scheduling problems with time window constraints. Oper Res
+Publisher's Note Springer Nature remains neutral with regard to juris-
+47. Hendtlass T (2003) Preserving diversity in particle swarm opti -
+48. Wang K-P, Huang L, Zhou C-G, Pang W (2003) Particle swarm
+(2014) Low-complexity particle swarm optimization for time-

@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from dataclasses import dataclass
 
 
@@ -19,10 +20,30 @@ class VRPTWProblem:
     vehicle_count: int
     capacity: float
     customers: list
+    distance_matrix: list
+    demand_arr: np.ndarray
+    ready_arr: np.ndarray
+    due_arr: np.ndarray
+    service_arr: np.ndarray
 
 
 def distance(a, b):
     return math.hypot(a.x - b.x, a.y - b.y)
+
+
+def build_distance_matrix(customers):
+    size = len(customers)
+    matrix = np.zeros((size, size), dtype=np.float64)
+    for i in range(size):
+        for j in range(i + 1, size):
+            d = math.hypot(customers[i].x - customers[j].x, customers[i].y - customers[j].y)
+            matrix[i][j] = d
+            matrix[j][i] = d
+    return matrix
+
+
+def distance_idx(problem, i, j):
+    return problem.distance_matrix[i][j]
 
 
 def load_simple_data():
@@ -38,6 +59,11 @@ def load_simple_data():
         vehicle_count=25,
         capacity=50,
         customers=customers,
+        distance_matrix=build_distance_matrix(customers),
+        demand_arr=np.array([c.demand for c in customers], dtype=np.float64),
+        ready_arr=np.array([c.ready for c in customers], dtype=np.float64),
+        due_arr=np.array([c.due for c in customers], dtype=np.float64),
+        service_arr=np.array([c.service for c in customers], dtype=np.float64),
     )
 
 
@@ -100,4 +126,9 @@ def load_solomon_instance(file_path):
         vehicle_count=vehicle_count,
         capacity=capacity,
         customers=customers,
+        distance_matrix=build_distance_matrix(customers),
+        demand_arr=np.array([c.demand for c in customers], dtype=np.float64),
+        ready_arr=np.array([c.ready for c in customers], dtype=np.float64),
+        due_arr=np.array([c.due for c in customers], dtype=np.float64),
+        service_arr=np.array([c.service for c in customers], dtype=np.float64),
     )

@@ -1,4 +1,4 @@
-# Benchmark Data Layout
+python main.py --mode section6 --dataset-root "data/solomon" --instances all --runs 30 --iters 1000 --seed 42 --output-csv "results/section6_full56.csv"# Benchmark Data Layout
 
 Place Solomon benchmark instance files in this folder:
 

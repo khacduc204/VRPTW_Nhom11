@@ -2,27 +2,46 @@ from ga import run_ga
 from pso import run_pso
 from acs import run_acs
 
-def run_meaf(problem, iters=300, seed=None):
-    stage_iters = max(50, iters // 3)
+def run_meaf(
+    problem,
+    iters=300,
+    seed=None,
+    T=5,
+    M=15,
+    easthreshold=2,
+    sditer=50,
+    dfpercent=0.85,
+    early_stop=None,
+):
+    algos = {
+        "GA": (run_ga, 11),
+        "PSO": (run_pso, 17),
+        "ACS": (run_acs, 23),
+    }
+    active = set(algos.keys())
+    best_cost = float("inf")
+    best_sol = None
+    last_improve = {k: 0 for k in algos}
 
-    ga_cost, ga_sol = run_ga(problem, iters=stage_iters, seed=None if seed is None else seed + 11)
-    pso_cost, pso_sol = run_pso(problem, iters=stage_iters, seed=None if seed is None else seed + 17)
-    acs_cost, acs_sol = run_acs(problem, iters=stage_iters, seed=None if seed is None else seed + 23)
+    iter_now = 0
+    while iter_now < iters and active:
+        chunk = min(M, iters - iter_now)
+        for name in list(active):
+            func, offset = algos[name]
+            cost, sol = func(
+                problem,
+                iters=chunk,
+                seed=None if seed is None else seed + offset + iter_now,
+                early_stop=early_stop,
+            )
+            if cost < best_cost:
+                best_cost = cost
+                best_sol = sol
+                last_improve[name] = iter_now
+            elif iter_now >= sditer and (iter_now - last_improve[name]) >= T:
+                if len(active) > easthreshold and cost > best_cost / dfpercent:
+                    active.remove(name)
 
-    best_cost = min(ga_cost, pso_cost, acs_cost)
+        iter_now += chunk
 
-    if best_cost == ga_cost:
-        final_cost, final_sol = run_ga(problem, iters=iters, seed=None if seed is None else seed + 101)
-        if final_cost < ga_cost:
-            return final_cost, final_sol
-        return ga_cost, ga_sol
-    elif best_cost == pso_cost:
-        final_cost, final_sol = run_pso(problem, iters=iters, seed=None if seed is None else seed + 103)
-        if final_cost < pso_cost:
-            return final_cost, final_sol
-        return pso_cost, pso_sol
-    else:
-        final_cost, final_sol = run_acs(problem, iters=iters, seed=None if seed is None else seed + 107)
-        if final_cost < acs_cost:
-            return final_cost, final_sol
-        return acs_cost, acs_sol
+    return best_cost, best_sol
